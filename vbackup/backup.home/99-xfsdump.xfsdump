@@ -1,0 +1,4 @@
+LEVEL=0
+PARTITIONS=/home
+MEDLABEL=ubuntu12-dev
+DESTDIR=xfsdump/

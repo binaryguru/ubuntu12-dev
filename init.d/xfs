@@ -1,0 +1,204 @@
+#!/bin/sh
+
+# $Id: xfs.init 189 2005-06-11 00:04:27Z branden $
+
+# Copyright 1998-2004 Branden Robinson <branden@debian.org>.
+#
+# This is free software; you may redistribute it and/or modify
+# it under the terms of the GNU General Public License as
+# published by the Free Software Foundation; either version 2,
+# or (at your option) any later version.
+#
+# This is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License with
+# the Debian operating system, in /usr/share/common-licenses/GPL;  if
+# not, write to the Free Software Foundation, Inc., 59 Temple Place,
+# Suite 330, Boston, MA 02111-1307 USA
+
+### BEGIN INIT INFO
+# Provides:          xfs
+# Required-Start:    $local_fs $remote_fs $syslog
+# Required-Stop:     $local_fs $remote_fs $syslog
+# Should-Start:      $network
+# Should-Stop:       $network
+# X-Start-Before:    gdm kdm xdm ldm sdm
+# Default-Start:     2 3 4 5
+# Default-Stop:      1
+# Short-Description: Start/stop script for the X Font Server.
+# Description:       For more information, see /usr/share/doc/xfs/README.Debian
+#                    or run: man xfs
+### END INIT INFO
+
+set -e
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+DAEMON=/usr/bin/xfs
+PIDDIR=/var/run/xfs
+PIDFILE=$PIDDIR/xfs.pid
+OLDPIDFILE=/var/run/xfs.pid
+UPGRADEFILE=/var/run/xfs.daemon-not-stopped
+SOCKET_DIR=/tmp/.font-unix
+
+test -x $DAEMON || exit 0
+
+. /lib/lsb/init-functions
+
+do_restorecon () {
+  # Restore file security context (SELinux).
+  if which restorecon >/dev/null 2>&1; then
+    restorecon "$1"
+  fi
+}
+
+set_up_socket_dir () {
+  echo -n "Setting up X font server socket directory $SOCKET_DIR..."
+  if [ -e $SOCKET_DIR ] && ! [ -d $SOCKET_DIR ]; then
+    SOCKET_DIR_TMP=$(mktemp -d $SOCKET_DIR.XXXXX)
+    mv $SOCKET_DIR $SOCKET_DIR_TMP
+  fi
+  if ! [ -d $SOCKET_DIR ]; then
+    mkdir -m 1777 $SOCKET_DIR || :
+    do_restorecon $SOCKET_DIR || :
+  fi
+  echo "done."
+}
+
+set_up_pid_dir () {
+  if [ ! -d "$PIDDIR" ] ; then
+    mkdir $PIDDIR
+    chown debian-xfs $PIDDIR
+  fi
+}
+
+fixup_user_homedir () {
+  # Fix a typo in the home directory name created by an old package.
+  u_home=$(getent passwd debian-xfs | cut -d ":" -f 6)
+  if [ "$u_home" = "/nonexistant" ] ; then
+    usermod --home /nonexistent debian-xfs >/dev/null || true
+  fi
+}
+
+stillrunning () {
+  if expr "$(cat /proc/$DAEMONPID/cmdline 2>/dev/null)" : "$DAEMON" >/dev/null \
+    2>&1; then
+    true
+  else
+    if [ -e $PIDFILE ]; then
+      echo -n " (removing stale $PIDFILE)"
+      rm $PIDFILE
+    fi
+    false
+  fi
+}
+
+
+# If there is only an old pidfile, use that. note that restart calls the start
+# initscript, so that will use the new pidfile for the new xfs process
+if [ "$1" = "restart" ] || [ "$1" = "reload" ] || [ "$1" = "stop" ] &&  \
+   [ ! -e $PIDFILE ] && [ -e $OLDPIDFILE ] ; then
+   PIDFILE=$OLDPIDFILE
+fi
+
+# If we have upgraded the daemon since we last started it, we can't use the
+# --exec argument to start-stop-daemon, because the daemon's inode will have
+# changed.  The risk here is that in a situation where the daemon died, its
+# pidfile was not cleaned up, we've upgraded it, *and* some other process is now
+# running under that pid, start-stop-daemon will send signals to an innocent
+# process.  However, this seems like a corner case.  C'est la vie!
+if [ -e $UPGRADEFILE ]; then
+  SSD_START_ARGS="--pidfile $PIDFILE --startas $DAEMON"
+  SSD_STOP_ARGS="--pidfile $PIDFILE --name ${DAEMON#**/}"
+else
+  SSD_START_ARGS="--pidfile $PIDFILE --exec $DAEMON"
+  SSD_STOP_ARGS="$SSD_START_ARGS"
+fi
+
+case "$1" in
+  start)
+    fixup_user_homedir
+    set_up_socket_dir
+    set_up_pid_dir
+    echo -n "Starting X font server: xfs"
+    start-stop-daemon --start --quiet $SSD_START_ARGS -- -daemon -user debian-xfs -droppriv \
+      || echo -n " already running"
+    echo "."
+  ;;
+
+  restart)
+    /etc/init.d/xfs stop
+    if [ -f $PIDFILE ]; then
+      if stillrunning; then
+        exit 1
+      fi
+    fi
+    /etc/init.d/xfs start
+  ;;
+
+  reload)
+    echo -n "Reloading X font server configuration..."
+    if start-stop-daemon --stop --signal 1 --quiet $SSD_STOP_ARGS; then
+      echo "done."
+    else
+      echo "xfs not running."
+    fi
+  ;;
+
+  force-reload)
+    /etc/init.d/xfs reload
+  ;;
+
+  stop)
+    echo -n "Stopping X font server: xfs"
+    if ! [ -f $PIDFILE ]; then
+      echo " not running ($PIDFILE not found)"
+      # The daemon is not running; do not tell the maintainer scripts that it
+      # has not stopped.
+      rm -f $UPGRADEFILE
+    else
+      DAEMONPID=$(cat $PIDFILE | tr -d '[:blank:]')
+      KILLCOUNT=1
+      if ! [ -e $UPGRADEFILE ]; then
+        if start-stop-daemon --stop --quiet $SSD_STOP_ARGS; then
+          # give xfs's signal handler a second to catch its breath
+          sleep 1
+        else
+          echo -n " not running"
+        fi
+      fi
+      while [ $KILLCOUNT -le 5 ]; do
+        if stillrunning; then
+          kill $DAEMONPID
+        else
+          break
+        fi
+        sleep 1
+        KILLCOUNT=$(( $KILLCOUNT + 1 ))
+      done
+      if stillrunning; then
+        echo -n " not responding to TERM signal (pid $DAEMONPID)"
+      else
+        # The daemon is not running; do not tell the maintainer scripts that it
+        # has not stopped.
+        rm -f $UPGRADEFILE
+      fi
+    fi
+    echo "."
+  ;;
+
+  status)
+    status_of_proc -p $PIDFILE $DAEMON xfs
+    ;;
+
+  *)
+    echo "Usage: /etc/init.d/xfs {start|stop|restart|reload|force-reload|status}"
+    exit 1
+    ;;
+esac
+
+exit 0
+
+# vim:set ai et sts=2 sw=2 tw=80:

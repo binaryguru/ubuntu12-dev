@@ -1,0 +1,3 @@
+DISKS=""
+DESTDIR="mbr/"
+DESTFILE="mbrs.%D1%"

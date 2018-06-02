@@ -1,0 +1,20 @@
+# font server configuration file
+# $Xorg: config.cpp,v 1.3 2000/08/17 19:54:19 cpqbld Exp $
+
+# allow a maximum of 10 clients to connect to this font server
+client-limit = 10
+# when a font server reaches its limit, start up a new one
+clone-self = on
+# log messages to /var/log/xfs.log
+# (Debian xfs uses syslog by default to run as nobody)
+# error-file = /var/log/xfs.log
+# log errors using syslog
+use-syslog = on
+# turn off TCP port listening (Unix domain connections are still permitted)
+no-listen = tcp
+# paths to search for fonts
+catalogue = /usr/share/fonts/X11/misc/,/usr/share/fonts/X11/cyrillic/,/usr/share/fonts/X11/100dpi/:unscaled,/usr/share/fonts/X11/75dpi/:unscaled,/usr/share/fonts/X11/Type1/,/usr/share/fonts/X11/100dpi/,/usr/share/fonts/X11/75dpi/
+# in decipoints
+default-point-size = 120
+# x1,y1,x2,y2,...
+default-resolutions = 100,100,75,75

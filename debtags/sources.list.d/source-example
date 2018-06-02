@@ -1,0 +1,29 @@
+# This is an example of how to add further sources by installing files in this
+# directory.  This file contains only comments, and does nothing.
+#
+# This file has the same syntax as /etc/debtags/sources.list, and all files in
+# /etc/debtags/sources.list.d/ are read as if they were concatenated at the end
+# of /etc/debtags/sources.list
+#
+# A package that would like to provide a local tag source, should do four things
+# things:
+#
+#  1. Depend on debtags (>= 1.7.3)
+#
+#  2. Install vocabulary data (vocabulary.gz) and tag data (tags-current.gz) in
+#     some directory (usually something like /usr/share/packagename)
+#
+#  3. Install in /etc/debtags/sources.list.d/ a file containing a few
+#     introductory comments and the line:
+#
+#     tags file:/usr/share/packagename
+#
+#  4. In postinst, invoke debtags update --local if the debtags executable is
+#     installed:
+#
+#     test -x /usr/bin/debtags && debtags update --local
+#
+#     Since Debtags calls debtags update --local in postinst as well, this will
+#     guarantee that at the end of the apt or dpkg run, the new tags will be
+#     installed independently of the order of invocation of the postinsts.
+#

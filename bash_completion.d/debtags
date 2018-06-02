@@ -1,0 +1,109 @@
+# Debian GNU/Linux debtags(1) completion
+# (C) 2004 2005 Emanuele Rocca <ema@debian.org>
+# License: GNU GPL v2 or later
+
+have debtags &&
+_debtags()
+{
+	local cur prev options
+	
+	COMPREPLY=()
+	cur=${COMP_WORDS[COMP_CWORD]}
+	prev=${COMP_WORDS[COMP_CWORD-1]}
+	options='cat check diff dumpavail grep help \
+		mkpatch search \
+		show submit tag tagcat tagsearch \
+		tagshow update vocfilter'
+	
+	for (( i=0; i < ${#COMP_WORDS[@]}-1; i++ )); do
+		case ${COMP_WORDS[i]} in
+		# commands requiring a filename
+		check|mkpatch|submit) 
+			_filedir
+			return 0
+			;;
+		
+		tag)
+			# the tag command expects one of the following parameters: 
+			# add, rm, ls
+			case $prev in
+			add|rm|ls)
+				COMPREPLY=( $( apt-cache pkgnames $cur 2> /dev/null ) )
+				return 0
+				;;
+			tag)
+				tag_cmds='add rm ls'
+				COMPREPLY=( $( compgen -W "$tag_cmds" -- $cur ) )
+				return 0
+				;;
+			*)
+				if [[ -n "${COMP_WORDS[COMP_CWORD-2]}" ]]; then
+					case ${COMP_WORDS[COMP_CWORD-2]} in
+						# add and rm are special: they need a tag after the package name
+						#
+						# TODO: filter out unneeded tags from the add and rm completion input
+						#
+						add|rm)
+							COMPREPLY=( $( grep "^Tag: $cur" /var/lib/debtags/vocabulary |cut -b 6- ) )
+							return 0
+							;;
+						*)
+							return 0
+							;;
+					esac
+				fi
+				return 0
+				;;
+			esac
+			;;
+
+		# commands requiring a package name
+		show)
+			COMPREPLY=( $( apt-cache pkgnames $cur 2> /dev/null ) )
+			return 0
+			;;
+		# commands requiring a singol tag 
+		tagshow)
+			if [[ "$prev" == "grep" && "$cur" == -* ]]; then
+				COMPREPLY=( $( compgen -W '--invert-match --quiet' -- $cur ) )
+				return 0
+			fi
+			COMPREPLY=( $( grep "^Tag: $cur" /var/lib/debtags/vocabulary |cut -b 6- ) )
+			return 0
+			;;
+		# commands requiring an expression
+		# TODO: Understand how to implement it. :)
+		# 		We should be able to complete while quoting; at the moment
+		# 		behave like the 'singol tag' case
+		grep|search)
+			if [[ "$prev" == "grep" && "$cur" == -* ]]; then
+				COMPREPLY=( $( compgen -W '--invert-match --quiet' -- $cur ) )
+				return 0
+			fi
+			COMPREPLY=( $( grep "^Tag: $cur" /var/lib/debtags/vocabulary |cut -b 6- ) )
+			return 0
+			;;
+		cat)
+			COMPREPLY=( $( compgen -W "--group-items" -- $cur ) )
+			return 0
+			;;
+		*)
+			;;
+		esac
+	done
+	
+	# short or long option
+	if [[ "$cur" == -* ]]; then
+		options='--verbose --debug -V --version -? --help'
+		COMPREPLY=( $( compgen -W "$options" -- $cur ) )
+		return 0
+	fi
+	
+	if [[ "$COMP_CWORD" == 1 ]]; then
+		COMPREPLY=( $( compgen -W "$options" -- $cur ) )
+		return 0
+	fi
+}
+
+[ "$have" ] && complete -F _debtags $filenames debtags
+# vim: syntax=sh

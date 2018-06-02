@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# cron-jobs remain behind when package is removed and not purged so make sure
+# we don't produce errors in that case
+test -x /usr/bin/update-profile-cache || exit 0
+
+/usr/bin/update-profile-cache

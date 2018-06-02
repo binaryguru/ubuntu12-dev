@@ -1,0 +1,45 @@
+# Source locations to get tag database info
+#
+# You can specify more than one; during update, debtags will merge the contents
+# of all the sources.  The merged data can be found in
+# /var/lib/debtags/package-tags and /var/lib/debtags/vocabulary.
+#
+# To contribute tags, please visit http://debtags.alioth.debian.org/todo.html
+
+# Reviewed tag data from the APT Packages file
+#tags apt://
+
+
+# Package rating from http://www.iterating.org
+#tags http://www.iterating.org/tags
+
+
+# Regularly updated, but unchecked, database on the web
+#
+# If you plan to use Stable, please be aware that online tag
+# databases are more likely to track Testing/Unstable; so be careful
+# about downloading tags from them, and please check if tags are still
+# accurate for current package versions before contributing them upstream
+#
+#tags http://debtags.alioth.debian.org/tags/
+
+
+# Example of locally maintained custom tag data
+#
+# You can provide your own tag data.  To do so, place a file called
+# vocabulary.gz and a file called tags-current.gz in a directory, and use the
+# directory as a tag source.
+#
+# In the example given below, you would place the tag data in
+# /etc/debtags/mytags/tags-current.gz, and the vocabulary data in
+# /etc/debtags/mytags/vocabulary.gz
+#
+# The format of tags-current.gz is described in the tagcoll(1) manpage and the
+# file is similar to /var/lib/debtags/package-tags.
+#
+# The format of vocabulary.gz is like the Debian Packages file, and the file is
+# similar to /var/lib/debtags/vocabulary.
+#
+#tags file:/etc/debtags/mytags
+
+tags file:///usr/share/debtags/

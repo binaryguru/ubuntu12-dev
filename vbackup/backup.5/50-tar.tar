@@ -1,0 +1,5 @@
+# Auto-created - See sample.tar for information
+DIRS='/etc /boot'
+LEVEL=5
+STATEDIR="/var/lib/vbackup/state/tar"
+DESTDIR="fs/%D1%"

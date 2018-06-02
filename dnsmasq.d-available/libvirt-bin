@@ -1,0 +1,4 @@
+# Warning - changes made to this file will be lost when the libvirt-bin
+# package is removed.
+bind-interfaces
+except-interface=virbr0

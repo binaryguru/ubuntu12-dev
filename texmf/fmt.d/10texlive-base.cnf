@@ -1,0 +1,14 @@
+# 10texlive-base.cnf
+# You can change/add entries to this file and changes will be preserved
+# over upgrades, even if you have removed the main package prior
+# (not if you purged it). You should leave the following pseudo comment
+# present in the file!
+# -_- DebPkgProvidedMaps -_-
+# 
+etex pdftex language.def -translate-file=cp227.tcx *etex.ini
+pdfetex pdftex language.def -translate-file=cp227.tcx *pdfetex.ini
+luatex luatex language.def luatex.ini
+dviluatex luatex language.def dviluatex.ini
+pdftex pdftex language.def -translate-file=cp227.tcx *pdfetex.ini
+mf mf-nowin - -translate-file=cp227.tcx mf.ini
+tex tex - tex.ini

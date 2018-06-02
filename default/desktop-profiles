@@ -1,0 +1,93 @@
+# Settings for the shell scripts of the desktop-profiles package 
+# (those scripts wil source this file). 
+#
+# Should only contain shell variables and comments
+###################################################################
+
+##################################################################
+# General settings (i.e. applying to all scripts in this package)
+##################################################################
+
+# Takes a (space separated) list of directories. Each of the dirs listed will
+# be searched for .listing files, all found .listing files will be used by
+# default.
+LISTINGS_DIRS="/etc/desktop-profiles"
+
+# Directory containing the cache of profile assignments 
+# (cache is only generated when that makes sense)
+CACHE_DIR="/var/cache/desktop-profiles"
+
+# This determines how the desktop-profiles agent script deals with the 
+# situation where the environment are already set by some other agent:
+# - autocrat: assume desktop-profiles is the only actor allowed to touch 
+#             the environment variables and ignore current setting of the
+#             environment variables (this is also known as BOFH mode)
+# - rude    : profiles activated by desktop-profiles take precedence over 
+#             those already set in the environment variables
+# - polite  : profiles activated by desktop-profiles give precedence to those 
+#             already set in the environment variables
+#             (allows user to override desktop-profiles)
+# - sheep   : always follow the set environment variables 
+#             (i.e. don't do anything, essentially deactivates desktop-profiles)            
+PERSONALITY=polite
+
+#################################
+# SETTINGS FOR xsession.d script
+#################################
+
+# The set [KDE, GCONF, XDG_CONFIG, XDG_DATA, ROX, UDE] defines the valid 
+# profile kinds. The following variable contains the subset of profile kinds
+# for which you want to activate the profiles.
+#
+# Disabling profile kinds you don't need used to cause a noticable decrease
+# in the time needed to run this script. The problem that caused that has 
+# been solved and the difference is no longer really noticable, hence it's
+# probably not worth the bother to mess with this.
+ACTIVE_PROFILE_KINDS="KDE XDG_CONFIG XDG_DATA GCONF GNUSTEP ROX UDE"
+
+##############################################
+# SETTINGS FOR list-desktop-profiles 
+# (and by extension the kommander gui script)
+##############################################
+
+# which field do we sort on by default?
+# field 1 = profile name (default)
+# field 2 = profile kind
+# field 3 = profile location
+# field 4 = profile priority
+# field 5 = activation requirements
+# field 6 = profile description
+#SORT_KEY=
+
+# any extra arguments to be passed to sort when sorting
+# (this defaults to '--general-numeric-sort --reverse' when sorting precedence)
+#SORT_ARGS=
+  
+# default regexp to be applied to the profiles' name field  
+#NAME_FILTER=
+
+# default regexp to be applied to the profiles' location field  
+#LOCATION_FILTER=
+
+# numerical test to be done on the profiles' precedence value
+# (e.g. '-gt 0', '-ge 0', or '-lt 50')
+# `test $PRECEDENCE $PRECEDENCE_FILTER` needs to be true
+#PRECEDENCE_FILTER=
+
+# default regexp to be applied to the profiles' requirements field  
+#REQUIREMENT_FILTER=
+
+# default regexp to be applied to the profiles' kind field  
+#KIND_FILTER=
+
+# default regexp to be applied to the profiles' description field  
+#DESCRIPTION_FILTER=
+
+# Set the default profile formatstring
+#   You may use the variables NAME, LOCATION, PRECEDENCE, REQUIREMENT, KIND,
+#   DESCRIPTION, FILE variables. The first 6 refer to the respective fields off
+#   the profile, while FILE refers to the .listing file the profile is in.
+#
+#   Characters interpreted specially by the shell (such as ';') need escaping.
+#FORMAT='$NAME\;$KIND\;$DESCRIPTION\;$PRECEDENCE\;$REQUIREMENTS\;$DESCRIPTION'
+

@@ -1,0 +1,4 @@
+#!/bin/sh
+test -d "/lib/modules/${1}/build" || exit 0
+KERN_VER="${1}" /sbin/rcvboxadd quicksetup
+exit 0

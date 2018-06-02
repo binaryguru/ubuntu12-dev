@@ -1,0 +1,21 @@
+% 10texlive-lang-other.cnf
+% You can change/add entries to this file and changes will be preserved
+% over upgrades, even if you have removed the main package prior
+% (not if you purged it). You should leave the following pseudo comment
+% present in the file!
+% -_- DebPkgProvidedMaps -_-
+% 
+name=romanian file=loadhyph-ro.tex lefthyphenmin=2 righthyphenmin=2
+name=irish file=loadhyph-ga.tex lefthyphenmin=2 righthyphenmin=3
+name=coptic file=loadhyph-cop.tex lefthyphenmin=1 righthyphenmin=1
+name=serbian file=loadhyph-sr-latn.tex lefthyphenmin=2 righthyphenmin=2
+name=turkish file=loadhyph-tr.tex lefthyphenmin=2 righthyphenmin=2
+name=welsh file=loadhyph-cy.tex lefthyphenmin=2 righthyphenmin=3
+name=esperanto file=loadhyph-eo.tex lefthyphenmin=2 righthyphenmin=2
+name=uppersorbian file=loadhyph-hsb.tex lefthyphenmin=2 righthyphenmin=2
+name=estonian file=loadhyph-et.tex lefthyphenmin=2 righthyphenmin=3
+name=indonesian file=loadhyph-id.tex lefthyphenmin=2 righthyphenmin=2
+name=interlingua file=loadhyph-ia.tex lefthyphenmin=2 righthyphenmin=2
+name=icelandic file=loadhyph-is.tex lefthyphenmin=2 righthyphenmin=2
+name=kurmanji file=loadhyph-kmr.tex lefthyphenmin=2 righthyphenmin=2
+name=slovenian file=loadhyph-sl.tex lefthyphenmin=2 righthyphenmin=2 synonyms=slovene

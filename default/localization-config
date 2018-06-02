@@ -1,0 +1,8 @@
+# Defaults for localization-config initscript
+# sourced by /etc/init.d/localization-config
+# installed at /etc/default/localization-config by the maintainer scripts
+
+#
+# This is a POSIX shell fragment
+#
+RUNATBOOT=false

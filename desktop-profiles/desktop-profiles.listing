@@ -1,0 +1,19 @@
+# This files specifies details the default system-wide settings, main use of 
+# profiles in here is to be able to use the default system settings as a 
+# fallback for anything that isn't defined in activated profiles.
+#
+# See the desktop-profiles (7) man page for info about the format of this file
+kde-prefix;KDE;/usr;;;System-wide kde stuff on Debian (stuff in PREFIX)
+
+default-xdg_config_dirs;XDG_CONFIG;/etc/xdg;;;Default value as defined by XDG Base Directory Specification
+default-xdg_data_dirs;XDG_DATA;/usr/local/share /usr/share;;;Default value as defined by XDG Base Directory Specification
+
+default-rox-system;ROX;/usr/local/share/Choices:/usr/share/rox/Choices;;;ROX system settings (on Debian, differs from upstream)
+default-rox-user;ROX;${HOME}/.rox_choices;999999999999999999;;ROX user settings (on Debian, differs from upstream) - should take precedence over everything else
+
+ude-install-dir;UDE;/usr/share/ude;;;Default location of system-wide UDE stuff
+
+gnustep-user-domain;GNUSTEP;${GNUSTEP_USER_ROOT};30;;Default location of user domain, evaluates to ~/GNUstep by default
+gnustep-local-domain;GNUSTEP;${GNUSTEP_LOCAL_ROOT};20;;Default location of local domain, evaluates to /usr/local/lib/GNUstep/Local by default
+gnustep-network-domain;GNUSTEP;${GNUSTEP_NETWORK_ROOT};10;;Default location of network domain, evaluates to /usr/local/lib/GNUstep/Network by default
+gnustep-system-domain;GNUSTEP;${GNUSTEP_SYSTEM_ROOT};0;;Default location of system domain, evaluates to /usr/lib/GNUstep/System by default

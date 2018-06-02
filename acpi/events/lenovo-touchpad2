@@ -1,0 +1,6 @@
+# /etc/acpi/events/lenovo-touchpad2
+# This is called when the user presses Fn-F8 on newer Lenovo ThinkPads,
+# toggling the touchpad on and off.
+
+event=ibm/hotkey HKEY 00000080 000060a
+action=/etc/acpi/asus-touchpad.sh

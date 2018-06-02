@@ -1,0 +1,403 @@
+#!/bin/sh
+#
+# Script to activate profiles (i.e. conditional extra stuff) for the various 
+# desktop environments in Debian based on the data in the *.listing files in
+# the /etc/desktop-profiles directory. Sourced by /etc/X11/Xsession.
+#
+# See the desktop-profiles(7) man page for an overview of how this works
+#
+# Code in this file has a couple of debian-specific parts:
+#  - use of tempfile from debian-utils
+#    (at start of execution, and in sort_profiles & activate_gnome functions)
+#  - hardcoded default values for the different GNUSTEP_*_ROOT env variables
+#    (in activate_gnustep function below)
+#
+# (c) 2004-2005 Bart Cornelis <cobaco AT skolelinux no>
+###############################################################################
+
+########################################################
+# get utility functions for working with .listing files
+########################################################
+LIB=/usr/share/desktop-profiles/listingmodule;
+if (test -r $LIB); then
+  . $LIB;
+  INSTALLED=true;
+else
+  # test for shell-library if absent then either:
+  # - the package installation is corrupt
+  # - the package is removed (this file is left as it's in /etc/ and
+  #   thus treated as a conffile
+  # We'll assume the latter.
+  echo "Shell library $LIB is missing -> assuming desktop-profiles is removed (but not purged)" >> $ERRFILE;
+  INSTALLED=false
+fi;
+
+general_trap () {
+ rm -f "$GCONF_FILE";
+ exit;
+}
+
+sort_profiles_trap () {
+ rm -f "$GCONF_FILE";
+ rm -f "$PROFILES";
+ exit;
+}
+
+#########################################################################
+# Sort all profiles that have their requirements met by kind
+# (result for each $KIND is saved in the corresponding env variable
+#  except for gnome which is saved in $GNOME_FILE, which is a tempfile)
+#########################################################################
+sort_profiles(){
+
+  #make sure we start with empty variables
+  KDEDIRS_NEW='';XDG_CONFIG_DIRS_NEW='';XDG_DATA_DIRS_NEW='';CHOICESPATH_NEW='';GNUSTEP_PATHLIST_NEW='';UDEDIRS_NEW='';PROFILES_NEW='';
+ 
+  # adjust trap to ensure we don't leave any tempfiles behind 
+  trap sort_profiles_trap HUP INT TERM;
+
+  # get profiles that are have fulfilled requirements, and save result on file descriptor 3
+  PROFILES=`tempfile`;
+  exec 3<> $PROFILES;
+  (#reset trap as we're now in a subshell
+   trap sort_profiles_trap HUP INT TERM;
+   
+   # get profiles that are have fulfilled requirements
+   cat $(list_listings) | grep -v -e "^[[:space:]]*#" -e "^[[:space:]]*$" | while read PROFILE; do
+     if (test_profile_requirements "$PROFILE"); then
+       echo $PROFILE;
+     fi;
+   done;
+
+   #and sort them by preference 
+  ) | sort --reverse --general-numeric-sort --field-separator=";" --key 4 > $PROFILES;
+
+  # read from file descriptor 3 (not using pipe, because then the variables being
+  # changed are in a subshell, which means they're unchanged outside the while loop)
+  while read PROFILE <&3; do
+  # sort per profile kind
+    KIND=`echo "$PROFILE" | cut --fields 2 --delimiter ";"`;
+    if (test "$KIND" = "KDE"); then 
+      KDEDIRS_NEW="$KDEDIRS_NEW $(echo "$PROFILE" | cut --fields 3 --delimiter ";")";
+    elif (test "$KIND" = "XDG_CONFIG"); then 
+      XDG_CONFIG_DIRS_NEW="$XDG_CONFIG_DIRS_NEW $(echo "$PROFILE" | cut --fields 3 --delimiter ";")";
+    elif (test "$KIND" = "XDG_DATA"); then 
+      XDG_DATA_DIRS_NEW="$XDG_DATA_DIRS_NEW $(echo "$PROFILE" | cut --fields 3 --delimiter ";")";
+    elif (test "$KIND" = "ROX"); then 
+      CHOICESPATH_NEW="$CHOICESPATH_NEW $(echo "$PROFILE" | cut --fields 3 --delimiter ";")";
+    elif (test "$KIND" = "GNUSTEP"); then 
+      GNUSTEP_PATHLIST_NEW="$GNUSTEP_PATHLIST_NEW $(echo "$PROFILE" | cut --fields 3 --delimiter ";")";
+    elif (test "$KIND" = "UDE"); then 
+      UDEDIRS_NEW="$UDEDIRS_NEW $(echo "$PROFILE" | cut --fields 3 --delimiter ";")";
+    elif (test "$KIND" = "GCONF"); then 
+      echo "`echo "$PROFILE" | cut --fields 3 --delimiter ";"` " >> $GCONF_FILE;
+    fi;	
+  done;
+
+  # close filedescriptor, delete tempfile, readjust trap
+  exec 3>&- ; 
+  rm -f $PROFILES;
+  trap general_trap HUP INT TERM;
+}
+
+##########################################################
+# Functions for activating the different kinds of profile
+##########################################################
+activate_KDE () {
+  KDEDIRS_NEW=`echo "$KDEDIRS_NEW" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g"`
+  if (test "$KDEDIRS_NEW"x != x) &&
+     (test "$KDEDIRS_NEW" != "$(cat $DEFAULT_LISTING | grep "^kde-prefix" | cut --fields 3 --delimiter ";" | sed -e  "s/^ *//" -e "s/ *$//" -e "s/ /:/g")"); then
+     # set KDEDIRS, handle current value based on active personality
+     if (test "$KDEDIRS"x = x); then
+        KDEDIRS=$(sh -c "echo $KDEDIRS_NEW");# FORCE expansion of variables in KDEDIRS_NEW if any
+     else # we need to check what to do with already set value	
+       case "$PERSONALITY" in
+         autocrat) KDEDIRS=$(sh -c "echo $KDEDIRS_NEW") ;;
+         rude) KDEDIRS=$(sh -c "echo $KDEDIRS_NEW"):$KDEDIRS ;;
+         polite | *) KDEDIRS=$KDEDIRS:$(sh -c "echo $KDEDIRS_NEW") ;;
+       esac;
+     fi;  
+    export KDEDIRS;
+  #desktop-profiles is not setting the variable so if we're autcratic enforce that view
+  elif (test "$PERSONALITY" = autocrat); then
+    unset KDEDIRS;
+  fi;
+}
+
+activate_XDG_CONFIG () {
+  XDG_CONFIG_DIRS_NEW=`echo "$XDG_CONFIG_DIRS_NEW" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g"`
+  if (test "$XDG_CONFIG_DIRS_NEW"x != x) &&
+     (test "$XDG_CONFIG_DIRS_NEW" != "$(cat $DEFAULT_LISTING | grep "^default-xdg_config_dirs" | cut --fields 3 --delimiter ";" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g")"); then
+     # set XDG_CONFIG_DIRS, handle current value based on active personality
+     if (test "$XDG_CONFIG_DIRS"x = x); then
+       XDG_CONFIG_DIRS=$(sh -c "echo $XDG_CONFIG_DIRS_NEW");# FORCE expansion of variables in XDG_CONFIG_DIRS_NEW if any
+     else
+       case "$PERSONALITY" in
+         autocrat) XDG_CONFIG_DIRS=$(sh -c "echo $XDG_CONFIG_DIRS_NEW") ;;
+         rude) XDG_CONFIG_DIRS=$(sh -c "echo $XDG_CONFIG_DIRS_NEW"):$XDG_CONFIG_DIRS ;;
+         polite | *) XDG_CONFIG_DIRS=$XDG_CONFIG_DIRS:$(sh -c "echo $XDG_CONFIG_DIRS_NEW") ;;
+       esac; 
+     fi;
+    export XDG_CONFIG_DIRS;
+  #desktop-profiles is not setting the variable so if we're autcratic enforce that view
+  elif (test "$PERSONALITY" = autocrat); then
+    unset XDG_CONFIG_DIRS;
+  fi;
+}
+
+activate_XDG_DATA () {
+  XDG_DATA_DIRS_NEW=`echo "$XDG_DATA_DIRS_NEW" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g"`
+  if (test "$XDG_DATA_DIRS_NEW"x != x) &&
+     (test "$XDG_DATA_DIRS_NEW" != "$(cat $DEFAULT_LISTING | grep "^default-xdg_data_dirs" | cut --fields 3 --delimiter ";" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g")"); then
+     # set XDG_DATA_DIRS, handle current value based on active personality
+     if (test "$XDG_DATA_DIRS"x = x); then
+       XDG_DATA_DIRS=$(sh -c "echo $XDG_DATA_DIRS_NEW");# FORCE expansion of variables in XDG_DATA_DIRS_NEW if any
+     else
+       case "$PERSONALITY" in
+         autocrat) XDG_DATA_DIRS=$(sh -c "echo $XDG_DATA_DIRS_NEW") ;;
+         rude) XDG_DATA_DIRS=$(sh -c "echo $XDG_DATA_DIRS_NEW"):$XDG_DATA_DIRS ;;
+         polite | *) XDG_DATA_DIRS=$XDG_DATA_DIRS:$(sh -c "echo $XDG_DATA_DIRS_NEW") ;;
+       esac; 
+     fi;
+    export XDG_DATA_DIRS;
+  #desktop-profiles is not setting the variable so if we're autcratic enforce that view
+  elif (test "$PERSONALITY" = autocrat); then
+    unset XDG_DATA_DIRS;
+  fi;
+}
+
+activate_ROX () {
+  CHOICESPATH_NEW=`echo "$CHOICESPATH_NEW" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g"`
+  DEFAULT_CHOICES=$(cat $DEFAULT_LISTING | grep '^default-rox-system;' | cut --fields 3 --delimiter ";" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g")
+  DEFAULT_CHOICES="$(cat $DEFAULT_LISTING | grep '^default-rox-user;' | cut --fields 3 --delimiter ";" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g"):$DEFAULT_CHOICES"
+  if (test "$CHOICESPATH_NEW"x != x) &&
+     (test "$CHOICESPATH_NEW" != "$DEFAULT_CHOICES"); then
+     # set CHOICESPATH, handle current value based on active personality
+     if (test "$CHOICESPATH"x = x); then
+       CHOICESPATH=$(sh -c "echo $CHOICESPATH_NEW");# FORCE expansion of variables in CHOICESPATH_NEW if any
+     else
+       case "$PERSONALITY" in
+         autocrat) CHOICESPATH=$(sh -c "echo $CHOICESPATH_NEW") ;;
+         rude) CHOICESPATH=$(sh -c "echo $CHOICESPATH_NEW"):$CHOICESPATH ;;
+         polite | *) CHOICESPATH=$CHOICESPATH:$(sh -c "echo $CHOICESPATH_NEW") ;;
+       esac; 
+     fi;
+    export CHOICESPATH;
+  #desktop-profiles is not setting the variable so if we're autcratic enforce that view
+  elif (test "$PERSONALITY" = autocrat); then
+    unset CHOICESPATH;
+  fi;
+}
+
+activate_UDE () {
+  # don't s/ /:g/ in next line, UDE doesn't currently support combining profile dirs
+  UDEDIRS_NEW=`echo "$UDEDIRS_NEW" | sed -e "s/^ *//" -e "s/ *$//"`
+  if (test "$UDEDIRS_NEW"x != x) &&
+     (test "$UDEDIRS_NEW" != "$(cat $DEFAULT_LISTING | grep "^ude-install-dir" | cut --fields 3 --delimiter ";")"); then
+    # UDE currently only supports one dir, so we use the current setting unless
+    # - we're in autocratic or rude mode or
+    # - UDEdir wasn't set up yet and we're in polite mode
+    if ( (test "$PERSONALITY" = autocrat) || (test "$PERSONALITY" = rude) || \
+         ( (test "$PERSONALITY" = polite) && (test "$UDEdir"x = x) ) );then
+      for dir in $UDEDIRS_NEW; do 
+        UDEdir=$dir;
+        break;
+      done;
+      export UDEdir=$(sh -c "echo $UDEdir");# FORCE expansion of variables in UDEdir if any
+    fi;
+  #desktop-profiles is not setting the variable so if we're autcratic enforce that view
+  elif (test "$PERSONALITY" = autocrat); then
+    unset UDEdir;
+  fi;
+}
+
+activate_GNUSTEP () {
+  # default values as set in /usr/lib/GNUstep/System/Library/Makefiles/GNUstep.sh (On Debian)
+  export GNUSTEP_USER_ROOT=${GNUSTEP_USER_ROOT:-`/usr/lib/GNUstep/System/Library/Makefiles/user_home user 2> /dev/null`};
+  export GNUSTEP_LOCAL_ROOT=${GNUSTEP_LOCAL_ROOT:-/usr/local/lib/GNUstep/Local};
+  export GNUSTEP_NETWORK_ROOT=${GNUSTEP_NETWORK_ROOT:-/usr/local/lib/GNUstep/Network};
+  export GNUSTEP_SYSTEM_ROOT=${GNUSTEP_SYSTEM_ROOT:-/usr/lib/GNUstep/System};
+
+  #should be in GNUSTEP_PATHLIST_NEW (see /usr/lib/GNUstep/System/Library/Makefiles/GNUstep.sh)
+  GNUSTEP_PATHLIST_NEW=`echo "$GNUSTEP_PATHLIST_NEW" | sed -e "s/^ *//" -e "s/ *$//" -e "s/ /:/g"`
+  
+  # get default domains
+  DEFAULT_DOMAINS=$(cat $DEFAULT_LISTING | grep "^gnustep-user-domain" | cut --fields 3 --delimiter ";" | sed -e  "s/^ *//" -e "s/ *$//" -e "s/ /:/g")
+  DEFAULT_DOMAINS="$DEFAULT_DOMAINS:$(cat $DEFAULT_LISTING | grep "^gnustep-local-domain" | cut --fields 3 --delimiter ";" | sed -e  "s/^ *//" -e "s/ *$//" -e "s/ /:/g")"
+  DEFAULT_DOMAINS="$DEFAULT_DOMAINS:$(cat $DEFAULT_LISTING | grep "^gnustep-network-domain" | cut --fields 3 --delimiter ";" | sed -e  "s/^ *//" -e "s/ *$//" -e "s/ /:/g")"
+  DEFAULT_DOMAINS="$DEFAULT_DOMAINS:$(cat $DEFAULT_LISTING | grep "^gnustep-system-domain" | cut --fields 3 --delimiter ";" | sed -e  "s/^ *//" -e "s/ *$//" -e "s/ /:/g")"
+
+  if (test "$GNUSTEP_PATHLIST_NEW"x != x) &&
+     (test "$GNUSTEP_PATHLIST_NEW" != "$DEFAULT_DOMAINS"); then
+     # set GNUSTEP_PATHLIST, handle current value based on active personality
+     if (test "$GNUSTEP_PATHLIST"x = x); then
+       export GNUSTEP_PATHLIST=$(sh -c "echo $GNUSTEP_PATHLIST_NEW");# FORCE expansion of variables in GNUSTEP_PATHLIST_NEW if any
+     else
+       case "$PERSONALITY" in
+         autocrat) export GNUSTEP_PATHLIST=$(sh -c "echo $GNUSTEP_PATHLIST_NEW") ;;
+         rude) export GNUSTEP_PATHLIST=$(sh -c "echo $GNUSTEP_PATHLIST_NEW"):$GNUSTEP_PATHLIST ;;
+         polite | *) export GNUSTEP_PATHLIST=$GNUSTEP_PATHLIST:$(sh -c "echo $GNUSTEP_PATHLIST_NEW") ;;
+       esac; 
+     fi;
+  else
+    #desktop-profiles is not setting the variable so if we're autcratic enforce that view
+    if (test "$PERSONALITY" = autocrat); then
+      unset GNUSTEP_PATHLIST;
+    fi;  
+    # if we're not setting things, then make sure we've not added to the environment
+    if (test "$GNUSTEP_USER_ROOT" = "$(/usr/lib/GNUstep/System/Library/Makefiles/user_home user 2> /dev/null)"); then unset GNUSTEP_USER_ROOT; fi
+    if (test "$GNUSTEP_LOCAL_ROOT" = "/usr/local/lib/GNUstep/Local"); then unset GNUSTEP_LOCAL_ROOT; fi
+    if (test "$GNUSTEP_NETWORK_ROOT" = "/usr/local/lib/GNUstep/Network"); then unset GNUSTEP_NETWORK_ROOT; fi
+    if (test "$GNUSTEP_SYSTEM_ROOT" = "/usr/lib/GNUstep/System"); then unset GNUSTEP_SYSTEM_ROOT; fi
+  fi;
+}
+
+activate_GCONF () {
+  # HACK WARNING:
+  #
+  # While GCONF allows multiple "configuration sources", there seems to be no clean way to
+  # make the used "configuration sources" dependend on a condition (such as group membership).
+  # One dirty way to get this ability is to generate a path file at login which will include
+  # directives activating the profiles that have their requirements met.
+  #
+  # NOTE: this alone isn't enough, the system-wide path file (/etc/gconf/<gconf-version>/path)
+  #       needs to contain a include directive for this generated file. (preferably it should 
+  #       contain _only_ that include directive setting everything else up through profiles)
+  
+  # $XDG_CACHE_HOME is not supposed to contain anything that can't be deleted
+  # so we can savely do this to avoid leaving old generated files from 
+  # previous logins laying around
+  XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache};
+  rm -f $(grep -sl '^# Generated by desktop-profiles package$' $XDG_CACHE_HOME/* | cut --delimiter ':' --fields 1);
+
+  # only generate path files for user if they will be included
+  if (grep 'include *\$(ENV_MANDATORY_PATH)' /etc/gconf/2/path > /dev/null 2>&1 ) ||
+     (grep 'include *\$(ENV_DEFAULTS_PATH)'  /etc/gconf/2/path > /dev/null 2>&1 ) ||
+     (grep 'include *\$(ENV_MANDATORY_PATH)' /etc/gconf/1/path > /dev/null 2>&1 ) ||
+     (grep 'include *\$(ENV_DEFAULTS_PATH)'  /etc/gconf/1/path > /dev/null 2>&1 ); then
+    
+    # used to keep track if we passed from mandatory to default configuration sources yet
+    INCLUDED_HOME=false; 
+
+    # create tempfile, while ensuring that cachedir exists
+    # We're using tempfile since it ensures we have a new file with
+    # a random filename, which is necessary for security:
+    # - if (generated) path file isn't there all is fine
+    # - if (generated) path file is there and the permissions on it allow $USER to write all is fine 
+    #   (as it's regenerated on login)
+    # - if (generated) path file is there (possibly changed by attacker) and the permissions on it do
+    #   not allow $USER to write things are not fine (as regeneration fails, and configuration sources
+    #   by attacker will be used).
+    #   Attacker can be $USER hirself (to avoid mandatory settings from sysadmin), or if file is in a
+    #   directory that's writeable by someone else a third party
+    mkdir -p $XDG_CACHE_HOME;
+    export MANDATORY_PATH=$(tempfile --directory $XDG_CACHE_HOME);
+    export DEFAULTS_PATH=$(tempfile --directory $XDG_CACHE_HOME);
+    
+    # add marker to generated files, both so we can find it again later, and to indicate origin
+    echo "# Generated by desktop-profiles package" > "$MANDATORY_PATH";
+    echo "# Generated by desktop-profiles package" > "$DEFAULTS_PATH";
+
+    # see if there's actually anyting to add, if so create pathfiles and fill them
+    cat $GCONF_FILE | while read LINE; do
+       # user gconf source should be included by system-wide path already
+       if (test "$LINE" != 'xml:readwrite:$(HOME)/.gconf'); then
+         if (test $INCLUDED_HOME = false); then
+	   # add configuration source
+           echo $LINE >> "$MANDATORY_PATH";
+         else 
+	   # add configuration source
+           echo $LINE >> "$DEFAULTS_PATH";
+         fi;	 
+       else  
+         INCLUDED_HOME=true;
+       fi  
+    done;
+
+    # get rid of temp files and variables if we don't use them
+    if (test "$(cat $MANDATORY_PATH | wc -l)" -eq 1); then
+      rm -f $MANDATORY_PATH;
+      unset MANDATORY_PATH;
+    fi;
+    if (test "$(cat $DEFAULTS_PATH | wc -l)" -eq 1); then
+      rm -f $DEFAULTS_PATH;
+      unset DEFAULTS_PATH;
+    fi;
+  fi; # end generated path files will be included
+  
+  # cleanup tempfile
+  rm -f $GCONF_FILE;
+}
+
+#####################
+# Start of execution
+#####################
+
+# Check is needed, as this file is a conffile and thus left after package
+# deinstallation, yet it shouldn't do anything when the package is deinstalled
+if (test $INSTALLED = true); then
+  #################################
+  # Check if user set any defaults
+  #################################
+  if (test -r /etc/default/desktop-profiles); then
+    . /etc/default/desktop-profiles;
+  fi;  
+  
+
+  # sheep don't form an opintion, they just follow along
+  # so skip everything if personality is set to sheep
+  if (test "$PERSONALITY" != sheep); then
+
+    #################################################
+    # Make sure the variables we need are initialized
+    #################################################
+    LISTINGS_DIRS=${LISTINGS_DIRS:-'/etc/desktop-profiles'}
+    CACHE_DIR=${CACHE_DIR:-'/var/cache/desktop-profiles'}
+    CACHE_FILE="$CACHE_DIR/activated_profiles"
+    ACTIVE_PROFILE_KINDS=${ACTIVE_PROFILE_KINDS:-''}
+    DEFAULT_LISTING=/etc/desktop-profiles/desktop-profiles.listing
+    PROFILE_PATH_FILES_DIR=${PROFILE_PATH_FILES_DIR:-'/var/cache/desktop-profiles/'}
+
+    ############################################################
+    # Actual activation of profiles
+    ############################################################
+    # if we have a cache and it's up-to-date -> use it
+    if (test -r "$CACHE_FILE") &&
+       (test $(ls -t -1 /etc/desktop-profiles/*.listing \
+                        /etc/default/desktop-profiles \
+                        "$CACHE_FILE" 2> /dev/null | \
+	       head -1) = "$CACHE_FILE"); then
+      # export the variable settings in the cache file after replacing 
+      # the placeholders for the current variable values with said values 
+      # (the location of placeholders is based on the active personalitytype)
+      export $(cat "$CACHE_FILE" | sed -e "s|\\\$KDEDIRS|$KDEDIRS|" \
+                            -e "s|\\\$XDG_CONFIG_DIRS|$XDG_CONFIG_DIRS|" \
+                            -e "s|\\\$XDG_DATA_DIRS|$XDG_DATA_DIRS|" \
+                            -e "s|\\\$CHOICESPATH|$CHOICESPATH|" \
+                            -e "s|\\\$GNUSTEP_PATHLIST|$GNUSTEP_PATHLIST|" \
+			    -e "s|\\\$UDEdir|$UDEdir|" );
+    
+      # UDEdir only holds 1 dir, so drop every dir except the first nonempty one
+      export UDEdir=$(echo $UDEdir | sed 's|^:||' | cut --fields 1 --delimiter ":");
+    # else if we have any profile kinds we're interested in, then go 
+    # calculate the profile assignments
+    elif (test "$ACTIVE_PROFILE_KINDS"x != "x"); then
+      # add trap to ensure we don't leave any tempfiles behind 
+      trap general_trap HUP INT TERM;
+      # get temp file
+      GCONF_FILE=`tempfile`;
+  
+      # sort the profiles, whose requirements are met into:
+      # - the appropriate environment variables
+      # - $GCONF_FILE
+      sort_profiles; 
+
+      # activate the profiles of the active kinds
+      for KIND in $ACTIVE_PROFILE_KINDS; do
+        # || true is to avoid hanging x-startup when trying a non-existing KIND
+        # which can happen e.g. due to typo's in the config file.
+        activate_$KIND || true;
+      done;
+    fi; # end dynamic profile assignment
+  fi;# end !sheep  
+fi;  

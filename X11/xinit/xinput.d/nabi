@@ -1,0 +1,4 @@
+XIM=nabi
+XIM_PROGRAM=/usr/bin/nabi
+XIM_ARGS=
+GTK_IM_MODULE=xim

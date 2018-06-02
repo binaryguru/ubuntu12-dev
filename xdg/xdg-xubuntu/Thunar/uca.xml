@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE actions [
+  <!ELEMENT actions (action)+>
+
+  <!ELEMENT action (icon|patterns|name|command|description|directories|audio-files|image-files|other-files|text-files|video-files)*>
+
+  <!ELEMENT icon (#PCDATA)>
+  <!ELEMENT command (#PCDATA)>
+  <!ELEMENT patterns (#PCDATA)>
+
+  <!ELEMENT name (#PCDATA)>
+  <!ATTLIST name xml:lang CDATA #IMPLIED>
+
+  <!ELEMENT description (#PCDATA)>
+  <!ATTLIST description xml:lang CDATA #IMPLIED>
+
+  <!ELEMENT directories EMPTY>
+  <!ELEMENT audio-files EMPTY>
+  <!ELEMENT image-files EMPTY>
+  <!ELEMENT other-files EMPTY>
+  <!ELEMENT text-files EMPTY>
+  <!ELEMENT video-files EMPTY>
+]>
+<actions>
+
+  <action>
+    <icon>Terminal</icon>
+    <patterns>*</patterns>
+    <name>Open Terminal Here</name>
+    <name xml:lang="ar">افتح الطرفيّة هنا</name>
+    <name xml:lang="ast">Abrir terminal equí</name>
+    <name xml:lang="bg">Отваряне на терминал тук</name>
+    <name xml:lang="bs">otvori terminal ovdje</name>
+    <name xml:lang="ca">Obre un terminal aquí</name>
+    <name xml:lang="da">Åbn terminal her</name>
+    <name xml:lang="de">Terminal hier öffnen</name>
+    <name xml:lang="el">Άνοιγμα τερματικού εδώ</name>
+    <name xml:lang="es">Abrir terminal aquí</name>
+    <name xml:lang="eu">Ireki terminala hemen</name>
+    <name xml:lang="fi">Avaa pääte tässä kansiossa</name>
+    <name xml:lang="fr">Ouvrir un terminal ici</name>
+    <name xml:lang="gl">Abrir un terminal aquí</name>
+    <name xml:lang="he">פתיחת מסוף מכאן</name>
+    <name xml:lang="hu">Terminál megnyitása itt</name>
+    <name xml:lang="it">Apri un terminale qui</name>
+    <name xml:lang="nl">Open hier een terminalvenster</name>
+    <name xml:lang="pl">Otwórz w terminalu</name>
+    <name xml:lang="ru">Открыть терминал</name>
+    <name xml:lang="sk">Otvoriť túto pozíciu v termináli</name>
+    <name xml:lang="sv">Öppna terminal här</name>
+    <name xml:lang="uk">Відкрити термінал тут</name>
+    <name xml:lang="zh_CN">在这里打开终端</name>
+    <name xml:lang="zh_HK">在此開啟終端機</name>
+    <name xml:lang="zh_TW">在此開啟終端機</name>
+    <command>exo-open --working-directory %f --launch TerminalEmulator</command>
+    <description>Example for a custom action</description>
+    <description xml:lang="ar">مثال لإجراء مخصص</description>
+    <description xml:lang="ast">Exemplu d'una aición personalizada</description>
+    <description xml:lang="bg">Пример за потребителско действие</description>
+    <description xml:lang="bs">Primjer trenutne akcije</description>
+    <description xml:lang="ca">Exemple d'acció personalitzada</description>
+    <description xml:lang="da">Eksempel for en specialfunktion</description>
+    <description xml:lang="de">Beispiel für eine eigene Aktion</description>
+    <description xml:lang="el">Παράδειγμα προσαρμοσμένης ενέργειας</description>
+    <description xml:lang="es">Ejemplo de una acción personalizada</description>
+    <description xml:lang="eu">Ekintza pertsonalizatu baten adibidea</description>
+    <description xml:lang="fi">Esimerkki omasta toiminnosta</description>
+    <description xml:lang="fr">Exemple d'une action personnalisée</description>
+    <description xml:lang="gl">Exemplo dunha acción personalizada</description>
+    <description xml:lang="he">דוגמה של פעולה מותאמת אישית</description>
+    <description xml:lang="hu">Példa egyéni műveletre</description>
+    <description xml:lang="it">Esempio di azione personalizzata</description>
+    <description xml:lang="nl">Voorbeeld van een alternatieve actie</description>
+    <description xml:lang="pl">Otwiera terminal we wskazanym katalogu roboczym</description>
+    <description xml:lang="sk">Príklad vlastnej akcie</description>
+    <description xml:lang="sv">Exempel på en anpassad åtgärd</description>
+    <description xml:lang="uk">Приклад особливої дії</description>
+    <description xml:lang="zh_CN">自定义操作的示例</description>
+    <description xml:lang="zh_HK">自訂動作範例</description>
+    <description xml:lang="zh_TW">自訂動作範例</description>
+    <directories/>
+  </action>
+
+  <action>
+    <icon>filefind</icon>
+    <name>Find in this folder</name>
+    <name xml:lang="ar">ابحث في هذا المجلد</name>
+    <name xml:lang="ast">Guetar nesta carpeta</name>
+    <name xml:lang="bg">Търсене в тази папка</name>
+    <name xml:lang="bs">Nađi u ovom direktoriju</name>
+    <name xml:lang="ca">Cerca en aquesta carpeta</name>
+    <name xml:lang="da">Find i denne mappe</name>
+    <name xml:lang="de">In diesem Verzeichnis suchen</name>
+    <name xml:lang="el">Αναζήτηση σε αυτόν τον φάκελο</name>
+    <name xml:lang="es">Buscar en esta carpeta</name>
+    <name xml:lang="eu">Bilatu karpeta honetan</name>
+    <name xml:lang="fi">Etsi tästä kansiosta</name>
+    <name xml:lang="fr">Rechercher dans ce dossier</name>
+    <name xml:lang="gl">Buscar neste cartafol</name>
+    <name xml:lang="he">חיפוש בתיקייה זו</name>
+    <name xml:lang="hu">Keresés ebben a mappában</name>
+    <name xml:lang="it">Trova in questa cartella</name>
+    <name xml:lang="nl">Zoeken in deze map</name>
+    <name xml:lang="pl">Wyszukaj</name>
+    <name xml:lang="ru">Найти в этом каталоге</name>
+    <name xml:lang="sk">Nájsť v tomto priečinku</name>
+    <name xml:lang="sv">Sök i denna mapp</name>
+    <name xml:lang="uk">Шукати в цій папці</name>
+    <name xml:lang="zh_CN">在当前文件夹里查找</name>
+    <name xml:lang="zh_HK">在這個資料夾內尋找</name>
+    <name xml:lang="zh_TW">在這個資料夾內尋找</name>
+    <command>catfish --path=%f</command>
+    <description>Search for files within this folder</description>
+    <description xml:lang="ar">ابحث عن الملفات داخل هذا المجلد</description>
+    <description xml:lang="ast">Guetar ficheros dientro d'esta carpeta</description>
+    <description xml:lang="bg">Търсене за файлове в тази папка</description>
+    <description xml:lang="bs">Traži datoteke u ovom direktoriju</description>
+    <description xml:lang="ca">Cerca fitxers en aquesta carpeta</description>
+    <description xml:lang="da">Søg efter filer i denne mappe</description>
+    <description xml:lang="de">Nach Dateien in diesem Verzeichnis suchen</description>
+    <description xml:lang="el">Αναζήτηση αρχείων μέσα σε αυτόν τον φάκελο</description>
+    <description xml:lang="es">Buscar archivos dentro de esta carpeta</description>
+    <description xml:lang="eu">Bilatu fitxategiak karpeta honetan</description>
+    <description xml:lang="fi">Etsi tiedostoja tästä kansiosta</description>
+    <description xml:lang="fr">Rechercher des fichiers dans ce dossier</description>
+    <description xml:lang="gl">Busca de ficheiros dentro deste cartafol</description>
+    <description xml:lang="he">חיפוש קבצים בתיקייה זו</description>
+    <description xml:lang="hu">Fájlok keresése ebben a mappában</description>
+    <description xml:lang="it">Cerca file all'interno di questa cartella</description>
+    <description xml:lang="nl">Zoek naar bestanden binnen deze map</description>
+    <description xml:lang="pl">Wyszukuje pliki we wskazanym katalogu</description>
+    <description xml:lang="ru">Поискать в файлах внутри этого каталога</description>
+    <description xml:lang="sk">Vyhľadať súbory v tomto priečinku</description>
+    <description xml:lang="sv">Sök efter filer i denna mapp</description>
+    <description xml:lang="uk">Шукати файли в цій папці</description>
+    <description xml:lang="zh_CN">搜索当前文件夹下的文件</description>
+    <description xml:lang="zh_HK">在此資料夾內搜尋檔案</description>
+    <description xml:lang="zh_TW">在此資料夾內搜尋檔案</description>
+    <patterns>*</patterns>
+    <directories/>
+  </action>
+
+</actions>
